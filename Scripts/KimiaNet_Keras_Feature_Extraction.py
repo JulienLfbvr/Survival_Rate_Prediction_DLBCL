@@ -1,25 +1,35 @@
 # By Abtin Riasatian, email: abtin.riasatian@uwaterloo.ca
-from keras.layers import Dense
-from keras.saving.save import load_model
 
+# importing libraries----------------------------------------------------
+import os
+from keras.layers import Dense
+import tensorflow as tf
+from tensorflow.keras.applications import DenseNet121
+from tensorflow.keras import Model, Sequential
+from tensorflow.keras.layers import GlobalAveragePooling2D, Lambda
+# from tensorflow.keras.applications.densenet import preprocess_input
+from tensorflow.keras.backend import bias_add, constant
+import glob
+import pickle
+import skimage.io
+import pathlib
+import numpy as np
+from tqdm import tqdm
+
+# ========================================================================
 # The extract_features function gets a patch directory and a feature directory.
 # the function will extract the features of the patches inside the folder
 # and saves them in a pickle file of dictionary mapping patch names to features.
 
 
 # config variables ---------------------------------------------
-patch_dir = "D:\ISEN\M1\Projet M1\DLBCL-Morph\Patches\HE"
-extracted_features_save_adr = "./extracted_features.pickle"
-network_weights_address = "./weights/KimiaNetKerasWeights.h5"
-network_input_patch_width = 224
-batch_size = 30
-img_format = 'png'
+PATCH_DIR = "D:\\ISEN\\M1\\Projet M1\\DLBCL-Morph\\Patches\\HE"
+EXTRACTED_FEATURES_SAVE_ADDR = "./extracted_features.pickle"
+NETWORK_WEIGHTS_ADDRESS = "./weights/KimiaNetKerasWeights.h5"
+PATCH_SIZE = 224
+BATCH_SIZE = 30
+IMG_FORMAT = 'png'
 use_gpu = True
-# =============================================================
-
-
-# importing libraries----------------------------------------------------
-import os
 
 if use_gpu:
     os.environ['NVIDIA_VISIBLE_DEVICES'] = '0'
@@ -28,19 +38,8 @@ else:
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
     os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
-import tensorflow as tf
-from tensorflow.keras.applications import DenseNet121
-from tensorflow.keras import Model, Sequential
-from tensorflow.keras.layers import GlobalAveragePooling2D, Lambda
-# from tensorflow.keras.applications.densenet import preprocess_input
-from tensorflow.keras.backend import bias_add, constant
-import pandas as pd
-import glob, pickle, skimage.io, pathlib
-import numpy as np
-from tqdm import tqdm
 
-
-# ========================================================================
+# =============================================================
 
 
 # feature extractor preprocessing function
@@ -67,50 +66,19 @@ def preprocessing_fn(input_batch, network_input_patch_width):
 
     return standardized_input_batch
 
-# Create the train dataset based on patches
-def create_train_dataset(patch_dir):
-    patient_df = pd.read_csv('D:\ISEN\M1\Projet M1\KimiaNet\clinical_data_with_no_missing_values.csv')
-    y_data = patient_df[['patient_id', 'Follow-up Status']]
-    train_dataset = []
-    for dirs in os.listdir(patch_dir):
-        patient_id = dirs
-        for files in os.listdir(patch_dir + "\\" + dirs):
-            if files.endswith(".png"):
-                image_data = skimage.io.imread(patch_dir + "\\" + dirs + "\\" + files)
-                train_dataset.append([image_data, patient_id])
-
-    x_train = []
-    y_train = []
-    for i in range(len(train_dataset)):
-        x_train.append(train_dataset[i][0])
-        y_data['patient_id'] = y_data['patient_id'].astype(str)
-        y_train.append(y_data[y_data['patient_id'] == train_dataset[i][1]]['Follow-up Status'].values[0])
-    return x_train, y_train
 
 # feature extractor initialization function
 def kimianet_feature_extractor(network_input_patch_width, weights_address):
-    #dnx = DenseNet121(include_top=False, weights=weights_address,
-    #                  input_shape=(network_input_patch_width, network_input_patch_width, 3), pooling='avg')
-    model = load_model('kimianet.h5')
+    dnx = DenseNet121(include_top=False, weights=weights_address,
+                      input_shape=(network_input_patch_width, network_input_patch_width, 3), pooling='avg')
 
-    kn_feature_extractor = Model(inputs=model.input, outputs=model.layers[-2].output)
+    kn_feature_extractor = Model(inputs=dnx.input, outputs=GlobalAveragePooling2D()(dnx.layers[-3].output))
 
     kn_feature_extractor_seq = Sequential([Lambda(preprocessing_fn,
                                                   arguments={'network_input_patch_width': network_input_patch_width},
                                                   input_shape=(None, None, 3), dtype=tf.uint8)])
 
     kn_feature_extractor_seq.add(kn_feature_extractor)
-    # kn_feature_extractor_seq.add(Dense(512, activation='relu'))
-    # kn_feature_extractor_seq.add(Dense(128, activation='relu'))
-    # kn_feature_extractor_seq.add(Dense(32, activation='relu'))
-    # kn_feature_extractor_seq.add(Dense(1, activation='sigmoid'))
-    #
-    # kn_feature_extractor_seq.layers[1].trainable = False
-    # kn_feature_extractor_seq.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
-    # x_train = np.array(x_train)
-    # y_train = np.array(y_train)
-    #
-    # kn_feature_extractor_seq.fit(np.array(x_train), np.array(y_train), epochs=10, batch_size=32)
 
     return kn_feature_extractor_seq
 
@@ -139,5 +107,5 @@ def extract_features(patch_dir, extracted_features_save_adr, network_weights_add
         pickle.dump(feature_dict, output_file, pickle.HIGHEST_PROTOCOL)
 
 
-extract_features(patch_dir, extracted_features_save_adr, network_weights_address, network_input_patch_width, batch_size,
-                 img_format)
+extract_features(PATCH_DIR, EXTRACTED_FEATURES_SAVE_ADDR, NETWORK_WEIGHTS_ADDRESS, PATCH_SIZE, BATCH_SIZE,
+                 IMG_FORMAT)

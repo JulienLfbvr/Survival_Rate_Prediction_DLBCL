@@ -4,7 +4,6 @@ import pandas as pd
 from PIL import Image
 import numpy as np
 
-
 # Définition du chemin du fichier csv contenant les données cliniques
 clinical_data_path = 'D:\ISEN\M1\Projet M1\DLBCL-Morph\clinical_data_cleaned.csv'
 
@@ -23,8 +22,7 @@ for patient_id in df_outcome['patient_id'].unique():
         # supprimer la ligne dans le csv
         df_outcome = df_outcome.drop(df_outcome[df_outcome['patient_id'] == patient_id].index)
 
-
-#fill NaN entries with the mean value of the feature
+# fill NaN entries with the mean value of the feature
 df_outcome = df_outcome.fillna(df_outcome.mean())
 
 # arrondir les moyennes à trois chiffres après la virgule
@@ -35,4 +33,3 @@ print(df_outcome.head())
 
 # Sauvegarde des données cliniques avec les tableaux d'images liés dans un fichier csv
 df_outcome.to_csv('clinical_data_with_no_missing_values.csv', index=False)
-

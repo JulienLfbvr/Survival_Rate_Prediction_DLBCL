@@ -20,7 +20,6 @@ import pathlib
 import tensorflow_addons as tfa
 
 patch_dir = "D:\\ISEN\\M1\\Projet M1\\DLBCL-Morph\\Patches\\HE"
-extracted_features_save_adr = "../extracted_features.pickle"
 network_weights_address = "../weights/KimiaNetKerasWeights.h5"
 network_input_patch_width = 224
 img_format = 'png'
@@ -94,35 +93,6 @@ def load_and_preprocess_dataset(batch_size):
     return train_ds_aug, val_ds_aug
 
 
-# def create_train_dataset(patch_dir_):
-#     patient_df = pd.read_csv('D:\\ISEN\\M1\\Projet M1\\KimiaNet\\CSV\\clinical_data_with_no_missing_values.csv')
-#     y_data = patient_df[['patient_id', 'Follow-up Status']].copy()
-#     train_dataset = []
-#     for dirs in os.listdir(patch_dir_):
-#         patient_id = dirs
-#         for files in os.listdir(patch_dir_ + "\\" + dirs):
-#             if files.endswith(".png"):
-#                 image_data = skimage.io.imread(f_name=patch_dir_ + "\\" + dirs + "\\" + files)
-#                 train_dataset.append([image_data, patient_id])
-#
-#     x_train = []
-#     y_train = []
-#     for i in range(len(train_dataset)):
-#         x_train.append(train_dataset[i][0])
-#         y_data.loc[:, 'patient_id'] = y_data['patient_id'].astype(str)
-#         y_train.append(y_data[y_data['patient_id'] == train_dataset[i][1]]['Follow-up Status'].values[0])
-#     return x_train, y_train
-
-# def create_train_dataset(patch_dir_):
-#     train_dataset = []
-#     for dirs in os.listdir(patch_dir_):
-#         for files in os.listdir(patch_dir_ + "\\" + dirs):
-#             if files.endswith(".png"):
-#                 image_data = skimage.io.imread(f_name=patch_dir_ + "\\" + dirs + "\\" + files)
-#                 train_dataset.append(image_data)
-#     return train_dataset
-
-
 class KimiaNetEncoder:
     """
     This class is used to create an encoder model based on the KimiaNet architecture.
@@ -130,7 +100,6 @@ class KimiaNetEncoder:
 
     def __init__(self):
         self.patch_dir = patch_dir
-        self.extracted_features_save_adr = extracted_features_save_adr
         self.network_weights_address = network_weights_address
         self.network_input_patch_width = network_input_patch_width
         self.img_format = img_format
@@ -155,18 +124,6 @@ class KimiaNetEncoder:
         return encoder
 
 
-# def conv_block_transpose(x, growth_rate, name):
-#     bn_axis = 3 if backend.image_data_format() == 'channels_last' else 1
-#     x1 = layers.BatchNormalization(axis=bn_axis, epsilon=1.001e-5, name=name + '_0_bn')(x)
-#     x1 = layers.Activation('relu', name=name + '_0_relu')(x1)
-#     x1 = layers.Conv2D(4 * growth_rate, 1, use_bias=False, name=name + '_1_conv')(x1)
-#     x1 = layers.BatchNormalization(axis=bn_axis, epsilon=1.001e-5, name=name + '_1_bn')(x1)
-#     x1 = layers.Activation('relu', name=name + '_1_relu')(x1)
-#     x1 = layers.Conv2D(growth_rate, 3, padding='same', use_bias=False, name=name + '_2_conv')(x1)
-#     x = layers.Concatenate(axis=bn_axis, name=name + '_concat')([x, x1])
-#     return x
-
-
 class KimiaNetDecoder:
     """
     This class is used to create a decoder model based on the KimiaNet architecture.
@@ -174,7 +131,6 @@ class KimiaNetDecoder:
 
     def __init__(self):
         self.patch_dir = patch_dir
-        self.extracted_features_save_adr = extracted_features_save_adr
         self.network_weights_address = network_weights_address
         self.network_input_patch_width = network_input_patch_width
         self.img_format = img_format
@@ -228,25 +184,16 @@ class KimiaNetAutoencoder:
 
     def __init__(self):
         self.patch_dir = patch_dir
-        self.extracted_features_save_adr = extracted_features_save_adr
         self.network_weights_address = network_weights_address
         self.network_input_patch_width = network_input_patch_width
         self.batch_size = None
-        self.visited_patches_paths = []
         self.img_format = img_format
-        self.encoder = None
-        self.decoder = None
         self.model = self.create_autoencoder()
 
     def create_autoencoder(self):
-        i = Input(shape=(network_input_patch_width, network_input_patch_width, 3), dtype=tf.float32)
-        # x = tf.cast(i, 'float32')
-        # x = preprocess_input(x)
-        # # add noise
+        i = Input(shape=(self.network_input_patch_width, self.network_input_patch_width, 3), dtype=tf.float32)
         x = KimiaNetEncoder().model(i)
-        self.encoder = x
         x = KimiaNetDecoder().model(x)
-        self.decoder = x
         autoencoder = Model(i, x, name="autoencoder")
         return autoencoder
 
@@ -258,66 +205,6 @@ class KimiaNetAutoencoder:
 
     def compile(self, lr=1e-4, loss_function='mse'):
         self.model.compile(optimizer=Adam(learning_rate=lr), loss=loss_function, metrics=['mse'])
-
-    # def create_batch(self):
-    #     batch = []
-    #     patch_nb = 0
-    #     patch_dir_ = self.patch_dir
-    #     for dirs in os.listdir(patch_dir_):
-    #         if patch_nb == self.batch_size:
-    #             break
-    #         for files in os.listdir(patch_dir_ + "\\" + dirs):
-    #             if files.endswith(".png") and files not in self.visited_patches_paths:
-    #                 image_data = skimage.io.imread(f_name=patch_dir_ + "\\" + dirs + "\\" + files)
-    #                 batch.append(image_data)
-    #                 self.visited_patches_paths.append(files)
-    #                 patch_nb += 1
-    #                 if patch_nb == self.batch_size:
-    #                     break
-    #     return batch
-
-    # def train(self, epochs, batch_size):
-    #     self.batch_size = batch_size
-    #     self.compile()
-    #
-    #     # Freeze the encoder
-    #     self.freeze_encoder()
-    #
-    #     # Load the dataset
-    #     X = create_train_dataset(self.patch_dir)
-    #     x_train, x_test = train_test_split(X, test_size=0.2, random_state=42)
-    #
-    #     # Divide the dataset into batches
-    #     x_train = np.array_split(x_train, len(x_train) / self.batch_size)
-    #     x_test = np.array_split(x_test, len(x_test) / self.batch_size)
-    #
-    #     # Train the model
-    #     for i in range(epochs):
-    #         print("Epoch: ", i)
-    #         for j in range(len(x_train)):
-    #             self.model.train_on_batch(
-    #                 x_train[j],
-    #                 x_train[j],
-    #                 sample_weight=None,
-    #                 class_weight=None,
-    #                 reset_metrics=True,
-    #                 return_dict=False,
-    #             )
-    #
-    #         for j in range(len(x_test)):
-    #             self.model.test_on_batch(
-    #                 x_test[j],
-    #                 x_test[j],
-    #                 sample_weight=None,
-    #                 reset_metrics=True,
-    #                 return_dict=False,
-    #             )
-
-
-# KimiaNetEncoder().model.summary()
-# KimiaNetDecoder().model.summary()
-# KimiaNetAutoencoder().model.layers[-2].summary()
-# KimiaNetAutoencoder().model.layers[-1].summary()
 
 
 def save_training_results(history, index, frozen):
