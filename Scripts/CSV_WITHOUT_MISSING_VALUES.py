@@ -5,10 +5,10 @@ from PIL import Image
 import numpy as np
 
 # Définition du chemin du fichier csv contenant les données cliniques
-clinical_data_path = 'D:\ISEN\M1\Projet M1\DLBCL-Morph\clinical_data_cleaned.csv'
+clinical_data_path = 'D:\\ISEN\\M1\\Projet M1\\DLBCL-Morph\\clinical_data_cleaned.csv'
 
 # Chemin du dossier contenant les images PNG
-image_folder = 'D:\ISEN\M1\Projet M1\DLBCL-Morph\Patches\HE'
+image_folder = 'D:\\ISEN\\M1\\Projet M1\\DLBCL-Morph\\Patches\\HE'
 
 # Chargement des données cliniques dans un DataFrame
 df_outcome = pd.read_csv(clinical_data_path)
