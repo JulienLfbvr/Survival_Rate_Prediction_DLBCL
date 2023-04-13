@@ -18,6 +18,7 @@ import PIL
 import PIL.Image
 import pathlib
 import tensorflow_addons as tfa
+from datetime import datetime
 
 patch_dir = "D:\\ISEN\\M1\\Projet M1\\DLBCL-Morph\\Patches\\HE"
 network_weights_address = "../weights/KimiaNetKerasWeights.h5"
@@ -207,78 +208,69 @@ class KimiaNetAutoencoder:
         self.model.compile(optimizer=Adam(learning_rate=lr), loss=loss_function, metrics=['mse'])
 
 
-def save_training_results(history, index, frozen):
-    # Plot training & validation loss values
-    plt.figure()
-    plt.plot(history.history['loss'])
-    plt.plot(history.history['val_loss'])
-    plt.title('Model loss')
-    plt.ylabel('Loss')
-    plt.xlabel('Epoch')
-    plt.legend(['Train', 'Test'], loc='upper left')
-    # Create the directory if it does not exist
-    if not os.path.exists(f"../results/model_{index}"):
-        os.makedirs(f"../results/model_{index}")
-    if frozen:
-        plt.savefig(f"../results/model_{index}/loss_frozen.png")
-    else:
-        plt.savefig(f"../results/model_{index}/loss.png")
-    plt.close()
+def save_training_results(histories, index):
+    histories[0]['loss'].extend(histories[1]['loss'])
+    histories[0]['val_loss'].extend(histories[1]['val_loss'])
+    history_dict = histories[0]
+    with open(f'../results/loss_history_{index}.pickle', 'wb') as output_file:
+        pickle.dump(history_dict, output_file, pickle.HIGHEST_PROTOCOL)
 
 
 def train_autoencoder():
-    batch_sizes = [16, 32, 64]
-    learning_rates = [1e-4, 1e-5, 1e-6]
-    for batch_size in batch_sizes:
-        for lr in learning_rates:
-            train_dataset, val_dataset = load_and_preprocess_dataset(batch_size)
-            autoencoder_ = KimiaNetAutoencoder()
-            autoencoder_.freeze_encoder()
-            autoencoder_.compile(lr=lr)
-            callbacks_frozen = [
-                tf.keras.callbacks.ModelCheckpoint(
-                    # Path where to save the model
-                    # The two parameters below mean that we will overwrite
-                    # the current checkpoint if and only if
-                    # the `val_loss` score has improved.
-                    # The saved model name will include the current epoch.
-                    filepath=f"../models/Model_{batch_size}_{lr}" + "/1.{epoch}",
-                    save_best_only=True,  # Only save a model if `val_loss` has improved.
-                    monitor="val_loss",
-                    verbose=1,
-                ),
-                tf.keras.callbacks.EarlyStopping(
-                    monitor="val_loss",
-                    min_delta=0.005,
-                    patience=1,
-                    verbose=1,
-                ),
-            ]
-            history = autoencoder_.model.fit(train_dataset, epochs=10, validation_data=val_dataset,
-                                             callbacks=callbacks_frozen, verbose=1)
-            save_training_results(history, f"{batch_size}_{lr}", True)
-            # Unfreeze the encoder
-            autoencoder_.unfreeze_encoder()
-            # Re-compile the model
-            autoencoder_.compile(lr=lr)
-            # Set up callbacks for saving the model and early stopping if the model doesn't improve
-            callbacks = [
-                tf.keras.callbacks.ModelCheckpoint(
-                    filepath=f"../models/Model_{batch_size}_{lr}" + "/2.{epoch}",
-                    save_best_only=True,  # Only save a model if `val_loss` has improved.
-                    monitor="val_loss",
-                    verbose=1,
-                ),
-                tf.keras.callbacks.EarlyStopping(
-                    monitor="val_loss",
-                    min_delta=0.002,
-                    patience=2,
-                    verbose=1,
-                ),
-            ]
-            history = autoencoder_.model.fit(train_dataset, epochs=10, validation_data=val_dataset, callbacks=callbacks,
-                                             verbose=1)
-            save_training_results(history, f"{batch_size}_{lr}", False)
+    date_time = datetime.now().strftime("%m%d%Y_%H:%M:%S")
+    batch_size = 32
+    lr = 1e-5
+    histories = []
+    train_dataset, val_dataset = load_and_preprocess_dataset(batch_size)
+    autoencoder_ = KimiaNetAutoencoder()
+    autoencoder_.freeze_encoder()
+    autoencoder_.compile(lr=lr)
+    callbacks_frozen = [
+        tf.keras.callbacks.ModelCheckpoint(
+            # Path where to save the model
+            # The two parameters below mean that we will overwrite
+            # the current checkpoint if and only if
+            # the `val_loss` score has improved.
+            # The saved model name will include the current epoch.
+            filepath=f"../models/Model_{batch_size}_{lr}_{date_time}" + "/1.{epoch}",
+            save_best_only=True,  # Only save a model if `val_loss` has improved.
+            monitor="val_loss",
+            verbose=1,
+        ),
+        tf.keras.callbacks.EarlyStopping(
+            monitor="val_loss",
+            min_delta=0.0005,
+            patience=1,
+            verbose=1,
+        ),
+    ]
+    history1 = autoencoder_.model.fit(train_dataset, epochs=20, validation_data=val_dataset,
+                                      callbacks=callbacks_frozen, verbose=1)
+    histories.append(history1.history)
+    # Unfreeze the encoder
+    autoencoder_.unfreeze_encoder()
+    # Re-compile the model
+    autoencoder_.compile(lr=lr)
+    # Set up callbacks for saving the model and early stopping if the model doesn't improve
+    callbacks = [
+        tf.keras.callbacks.ModelCheckpoint(
+            filepath=f"../models/Model_{batch_size}_{lr}_{date_time}" + "/2.{epoch}",
+            save_best_only=True,  # Only save a model if `val_loss` has improved.
+            monitor="val_loss",
+            verbose=1,
+        ),
+        tf.keras.callbacks.EarlyStopping(
+            monitor="val_loss",
+            min_delta=0.0001,
+            patience=2,
+            verbose=1,
+        ),
+    ]
+    history2 = autoencoder_.model.fit(train_dataset, epochs=20, validation_data=val_dataset,
+                                      callbacks=callbacks,
+                                      verbose=1)
+    histories.append(history2.history)
+    save_training_results(histories, f"{batch_size}_{lr}_{date_time}")
 
 
 if __name__ == "__main__":
