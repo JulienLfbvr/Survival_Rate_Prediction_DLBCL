@@ -1,24 +1,18 @@
-from tensorflow.keras import layers, losses
-from tensorflow.keras.models import Model
+import pathlib
+import pickle
+from datetime import datetime
+
+import numpy as np
+import tensorflow as tf
+import tensorflow_addons as tfa
+from keras import Input
+from keras import backend
 from keras.applications import DenseNet121
 from keras.applications.densenet import conv_block
-from keras import Input
+from tensorflow.keras import layers
 from tensorflow.keras.applications.densenet import preprocess_input
-from keras import backend
-import tensorflow as tf
+from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
-import pandas as pd
-import os
-import skimage.io
-import numpy as np
-import matplotlib.pyplot as plt
-import pickle
-import random
-import PIL
-import PIL.Image
-import pathlib
-import tensorflow_addons as tfa
-from datetime import datetime
 
 patch_dir = "D:\\ISEN\\M1\\Projet M1\\DLBCL-Morph\\Patches\\HE"
 network_weights_address = "../weights/KimiaNetKerasWeights.h5"

@@ -1,8 +1,7 @@
 # Importation des bibliothèques nécessaires
 import os
+
 import pandas as pd
-from PIL import Image
-import numpy as np
 from sklearn.impute import KNNImputer
 
 # Définition du chemin du fichier csv contenant les données cliniques

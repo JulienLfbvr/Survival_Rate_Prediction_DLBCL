@@ -2,18 +2,17 @@
 
 # importing libraries----------------------------------------------------
 import os
-from keras.layers import Dense
+import pathlib
+import pickle
+
+import numpy as np
+import skimage.io
 import tensorflow as tf
-from tensorflow.keras.applications import DenseNet121
 from tensorflow.keras import Model, Sequential
-from tensorflow.keras.layers import GlobalAveragePooling2D, Lambda
+from tensorflow.keras.applications import DenseNet121
 # from tensorflow.keras.applications.densenet import preprocess_input
 from tensorflow.keras.backend import bias_add, constant
-import glob
-import pickle
-import skimage.io
-import pathlib
-import numpy as np
+from tensorflow.keras.layers import GlobalAveragePooling2D, Lambda
 from tqdm import tqdm
 
 # ========================================================================
