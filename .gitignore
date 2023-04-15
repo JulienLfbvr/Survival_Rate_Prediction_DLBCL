@@ -133,3 +133,4 @@ dmypy.json
 
 # Pcikle files
 *.pickle
+/Models/2.12/

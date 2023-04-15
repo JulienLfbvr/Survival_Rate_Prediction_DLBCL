@@ -1,4 +1,4 @@
-# By Abtin Riasatian, email: abtin.riasatian@uwaterloo.ca
+# Based on the script "KimiNet_Keras_Feature_Extraction" written by Abtin Riasatian, email: abtin.riasatian@uwaterloo.ca
 
 # importing libraries----------------------------------------------------
 import os
@@ -10,10 +10,14 @@ import skimage.io
 import tensorflow as tf
 from tensorflow.keras import Model, Sequential
 from tensorflow.keras.applications import DenseNet121
-# from tensorflow.keras.applications.densenet import preprocess_input
+from tensorflow.keras.applications.densenet import preprocess_input
 from tensorflow.keras.backend import bias_add, constant
 from tensorflow.keras.layers import GlobalAveragePooling2D, Lambda
 from tqdm import tqdm
+import sys
+import KimiaNet_AutoEncoder_3_blocks as Kn
+
+sys.path.insert(0, "D:\\ISEN\\M1\\Projet M1\\KimiaNet\\Scripts")
 
 # ========================================================================
 # The extract_features function gets a patch directory and a feature directory.
@@ -23,8 +27,8 @@ from tqdm import tqdm
 
 # config variables ---------------------------------------------
 PATCH_DIR = "D:\\ISEN\\M1\\Projet M1\\DLBCL-Morph\\Patches\\HE"
-EXTRACTED_FEATURES_SAVE_ADDR = "./extracted_features.pickle"
-NETWORK_WEIGHTS_ADDRESS = "./weights/KimiaNetKerasWeights.h5"
+EXTRACTED_FEATURES_SAVE_ADDR = "../extracted_features_V2.2.pickle"
+NETWORK_WEIGHTS_ADDRESS = "../weights/KimiaNetKerasWeights.h5"
 PATCH_SIZE = 224
 BATCH_SIZE = 30
 IMG_FORMAT = 'png'
@@ -82,10 +86,22 @@ def kimianet_feature_extractor(network_input_patch_width, weights_address):
     return kn_feature_extractor_seq
 
 
+def autoencoder_feature_extractor(model_address, network_input_patch_width):
+    autoencoder = tf.keras.models.load_model(model_address)
+    ae_feature_extractor = Model(inputs=autoencoder.layers[-2].inputs,
+                                 outputs=GlobalAveragePooling2D()(autoencoder.layers[-2].outputs[-1]))
+    ae_feature_extractor_seq = Sequential([Lambda(preprocessing_fn,
+                                                  arguments={'network_input_patch_width': network_input_patch_width},
+                                                  input_shape=(None, None, 3), dtype=tf.uint8)])
+    ae_feature_extractor_seq.add(ae_feature_extractor)
+    return ae_feature_extractor_seq
+
+
 # feature extraction function
 def extract_features(patch_dir, extracted_features_save_adr, network_weights_address,
                      network_input_patch_width, batch_size, img_format):
-    feature_extractor = kimianet_feature_extractor(network_input_patch_width, network_weights_address)
+    # feature_extractor = kimianet_feature_extractor(network_input_patch_width, network_weights_address)
+    feature_extractor = autoencoder_feature_extractor('../Models/2.12', network_input_patch_width)
     feature_dict = {}
     # get the list of patch addresses
     for paths, dirs, files in os.walk(patch_dir):
