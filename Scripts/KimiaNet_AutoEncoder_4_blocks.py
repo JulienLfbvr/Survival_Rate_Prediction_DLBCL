@@ -13,6 +13,9 @@ from tensorflow.keras import layers
 from tensorflow.keras.applications.densenet import preprocess_input
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
+import pydot
+import graphviz
+from tensorflow.keras.utils import plot_model
 
 patch_dir = "D:\\ISEN\\M1\\Projet M1\\DLBCL-Morph\\Patches\\HE"
 network_weights_address = "../weights/KimiaNetKerasWeights.h5"
@@ -268,4 +271,9 @@ def train_autoencoder():
 
 
 if __name__ == "__main__":
-    train_autoencoder()
+    # train_autoencoder()
+    # plot the model architecture
+    autoencoder = KimiaNetAutoencoder()
+    plot_model(autoencoder.model, to_file='../Figures/autoencoder.png', show_shapes=True, show_layer_names=True)
+    plot_model(autoencoder.model.layers[-2], to_file='../Figures/encoder.png', show_shapes=True, show_layer_names=True)
+    plot_model(autoencoder.model.layers[-1], to_file='../Figures/decoder.png', show_shapes=True, show_layer_names=True)
