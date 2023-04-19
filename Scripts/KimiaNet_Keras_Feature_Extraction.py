@@ -27,8 +27,9 @@ sys.path.insert(0, "D:\\ISEN\\M1\\Projet M1\\KimiaNet\\Scripts")
 
 # config variables ---------------------------------------------
 PATCH_DIR = "D:\\ISEN\\M1\\Projet M1\\DLBCL-Morph\\Patches\\HE"
-EXTRACTED_FEATURES_SAVE_ADDR = "../extracted_features_V2.2.pickle"
-NETWORK_WEIGHTS_ADDRESS = "../weights/KimiaNetKerasWeights.h5"
+EXTRACTED_FEATURES_SAVE_ADDR = "../extracted_features_V3.pickle"
+# NETWORK_WEIGHTS_ADDRESS = "../weights/KimiaNetKerasWeights.h5"
+NETWORK_WEIGHTS_ADDRESS = "../Models/2"
 PATCH_SIZE = 224
 BATCH_SIZE = 30
 IMG_FORMAT = 'png'
@@ -101,7 +102,7 @@ def autoencoder_feature_extractor(model_address, network_input_patch_width):
 def extract_features(patch_dir, extracted_features_save_adr, network_weights_address,
                      network_input_patch_width, batch_size, img_format):
     # feature_extractor = kimianet_feature_extractor(network_input_patch_width, network_weights_address)
-    feature_extractor = autoencoder_feature_extractor('../Models/2.12', network_input_patch_width)
+    feature_extractor = autoencoder_feature_extractor(network_weights_address, network_input_patch_width)
     feature_dict = {}
     # get the list of patch addresses
     for paths, dirs, files in os.walk(patch_dir):
@@ -122,5 +123,6 @@ def extract_features(patch_dir, extracted_features_save_adr, network_weights_add
         pickle.dump(feature_dict, output_file, pickle.HIGHEST_PROTOCOL)
 
 
-extract_features(PATCH_DIR, EXTRACTED_FEATURES_SAVE_ADDR, NETWORK_WEIGHTS_ADDRESS, PATCH_SIZE, BATCH_SIZE,
-                 IMG_FORMAT)
+if __name__ == '__main__':
+    extract_features(PATCH_DIR, EXTRACTED_FEATURES_SAVE_ADDR, NETWORK_WEIGHTS_ADDRESS, PATCH_SIZE, BATCH_SIZE,
+                     IMG_FORMAT)

@@ -14,7 +14,7 @@ from tensorflow.keras.applications.densenet import preprocess_input
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
 
-patch_dir = "D:\\ISEN\\M1\\Projet M1\\DLBCL-Morph\\Patches\\HE\\13901"
+patch_dir = "D:\\ISEN\\M1\\Projet M1\\DLBCL-Morph\\Patches\\HE"
 network_weights_address = "../weights/KimiaNetKerasWeights.h5"
 network_input_patch_width = 224
 img_format = 'png'
@@ -75,8 +75,8 @@ def prepare(ds, batch_size, shuffle=False, augment=False):
 
 def load_and_preprocess_dataset(batch_size):
     data_dir = pathlib.Path(patch_dir)
-    # list_ds = tf.data.Dataset.list_files(str(data_dir / '*/*'), shuffle=False)
-    list_ds = tf.data.Dataset.list_files(str(data_dir / '*'), shuffle=False)
+    list_ds = tf.data.Dataset.list_files(str(data_dir / '*/*'), shuffle=False)
+    # list_ds = tf.data.Dataset.list_files(str(data_dir / '*'), shuffle=False)
     image_count = len(list_ds)
     val_size = int(image_count * 0.2)
     train_ds = list_ds.skip(val_size)
@@ -84,7 +84,7 @@ def load_and_preprocess_dataset(batch_size):
     train_ds = train_ds.map(process_path, num_parallel_calls=AUTOTUNE)
     val_ds = val_ds.map(process_path, num_parallel_calls=AUTOTUNE)
     train_ds_aug = prepare(train_ds, batch_size, shuffle=True, augment=True)
-    val_ds_aug = prepare(val_ds, batch_size, shuffle=False, augment=True)
+    val_ds_aug = prepare(val_ds, batch_size)
     return train_ds_aug, val_ds_aug
 
 
@@ -170,7 +170,6 @@ class KimiaNetDecoder:
         x = layers.Activation("relu")(x)
         x = layers.UpSampling2D(size=4)(x)
         x = layers.Conv2DTranspose(3, 1, use_bias=False)(x)
-        x = layers.Activation("relu")(x)
         decoder = Model(encoder.intermediate_features, x, name="decoder")
         self.transpose_block_number = 0  # reset the counter
         return decoder
@@ -218,7 +217,9 @@ def save_training_results(histories, index):
 
 def train_autoencoder():
     date_time = datetime.now().strftime("%d%m%Y_%H%M%S")
-    batch_size = 4
+    # batch_size : 32, 32, 32, 16, 16, 16
+    # lr : 1e-4, 1e-5, 1e-3, 1e-4, 1e-5, 1e-3
+    batch_size = 32
     lr = 1e-4
     histories = []
     train_dataset, val_dataset = load_and_preprocess_dataset(batch_size)
@@ -240,7 +241,8 @@ def train_autoencoder():
     ]
     # history1 = autoencoder_.model.fit(train_dataset, epochs=1, validation_data=val_dataset,
     #                                  callbacks=callbacks_frozen, verbose=1)
-    history1 = autoencoder_.model.fit(train_dataset, epochs=20, validation_data=val_dataset, verbose=1)
+    history1 = autoencoder_.model.fit(train_dataset, epochs=20, validation_data=val_dataset,
+                                      callbacks=callbacks_frozen, verbose=1)
     histories.append(history1.history)
     # Unfreeze the encoder
     autoencoder_.unfreeze_encoder()
@@ -255,7 +257,7 @@ def train_autoencoder():
             verbose=1,
         ),
     ]
-    history2 = autoencoder_.model.fit(train_dataset, epochs=30, validation_data=val_dataset,
+    history2 = autoencoder_.model.fit(train_dataset, epochs=50, validation_data=val_dataset,
                                       callbacks=callbacks,
                                       verbose=1)
     histories.append(history2.history)
